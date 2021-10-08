@@ -1,0 +1,26 @@
+aiida_core
+aiida_core/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*$py.class
+*~
+\#*\#
+*.swp
+# C extensions
+*.so
+.env
+
+# distribution build directories
+*.egg-info/
+build/
+dist/
+*/docs/_build/
+
+.cache/
+
+# Test-related
+# test-submission folders
+submit_test/
+# testing configuration
+testconfig.ini

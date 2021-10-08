@@ -1,0 +1,6 @@
+The aiida-barrier workchains were originally developed by Arsalan Akhtar.
+
+Emanuele Bosoni and Alberto Garcia implemented the use of LUA scripts in the
+aiida-siesta package, a feature necessary for the use of these workchains.
+
+Alberto Garcia refined the structure of the workchains.
