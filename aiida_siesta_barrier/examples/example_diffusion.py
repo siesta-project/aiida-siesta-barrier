@@ -88,7 +88,7 @@ neb_parameters = Dict(dict=parameters)
 parameters.update(relaxation)
 endpoint_parameters = Dict(dict=parameters)
 
-    
+
 #The basis set
 basis = Dict(dict={
 'pao-energy-shift': '300 meV',
@@ -172,7 +172,7 @@ inputs = {
         'pseudos': pseudos_dict,
         'options': Dict(dict=options_neb)
     },
-        
+
 }
 
 process = submit(InterstitialBarrierWorkChain, **inputs)

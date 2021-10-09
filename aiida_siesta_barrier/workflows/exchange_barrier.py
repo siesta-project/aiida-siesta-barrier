@@ -2,10 +2,10 @@ from aiida import orm
 from aiida.engine import WorkChain, ToContext
 from aiida_siesta.workflows.neb_base import SiestaBaseNEBWorkChain
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.utils.structures import exchange_sites_in_structure
-from aiida_siesta.utils.structures import compute_mid_path_position
-from aiida_siesta.utils.structures import find_intermediate_structure
-from aiida_siesta.utils.interpol import interpolate_two_structures_ase
+from aiida_siesta_barrier.utils.structures import exchange_sites_in_structure
+from aiida_siesta_barrier.utils.structures import compute_mid_path_position
+from aiida_siesta_barrier.utils.structures import find_intermediate_structure
+from aiida_siesta_barrier.utils.interpol import interpolate_two_structures_ase
 
 
 class ExchangeBarrierWorkChain(WorkChain):
@@ -13,34 +13,57 @@ class ExchangeBarrierWorkChain(WorkChain):
     Workchain to compute the barrier for exchange of two atoms
     in a structure.
     """
-
     @classmethod
     def define(cls, spec):
         super().define(spec)
 
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('structure',), namespace="initial")
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('structure',), namespace="final")
+        spec.expose_inputs(SiestaBaseWorkChain,
+                           exclude=('structure', ),
+                           namespace="initial")
+        spec.expose_inputs(SiestaBaseWorkChain,
+                           exclude=('structure', ),
+                           namespace="final")
 
-        spec.expose_inputs(SiestaBaseNEBWorkChain, exclude=('starting_path',), namespace="neb")
+        spec.expose_inputs(SiestaBaseNEBWorkChain,
+                           exclude=('starting_path', ),
+                           namespace="neb")
 
-        spec.input('initial_structure', valid_type=orm.StructureData, help='Initial structure')
+        spec.input('initial_structure',
+                   valid_type=orm.StructureData,
+                   help='Initial structure')
 
-        spec.input('first_index', valid_type=orm.Int, help='Index of first atom in structure')
-        spec.input('second_index', valid_type=orm.Int, help='Index of second atom structure')
-        spec.input('migration_direction', valid_type=orm.List, help='Migration direction (in lattice coordinates)')
+        spec.input('first_index',
+                   valid_type=orm.Int,
+                   help='Index of first atom in structure')
+        spec.input('second_index',
+                   valid_type=orm.Int,
+                   help='Index of second atom structure')
+        spec.input('migration_direction',
+                   valid_type=orm.List,
+                   help='Migration direction (in lattice coordinates)')
 
-        spec.input('n_images', valid_type=orm.Int, help='Number of (internal) images in Path (odd!!)')  # validate
+        spec.input(
+            'n_images',
+            valid_type=orm.Int,
+            help='Number of (internal) images in Path (odd!!)')  # validate
 
         spec.expose_outputs(SiestaBaseNEBWorkChain)
 
-        spec.outline(
-            cls.prepare_structures, cls.relax_initial, cls.relax_final, cls.prepare_initial_path, cls.run_NEB_workchain,
-            cls.check_results
-        )
+        spec.outline(cls.prepare_structures, cls.relax_initial,
+                     cls.relax_final, cls.prepare_initial_path,
+                     cls.run_NEB_workchain, cls.check_results)
 
-        spec.exit_code(200, 'ERROR_MAIN_WC', message='The end-point relaxation SiestaBaseWorkChain failed')
-        spec.exit_code(250, 'ERROR_CONFIG', message='Cannot generate initial path correctly')
-        spec.exit_code(300, 'ERROR_NEB_WK', message='SiestaBaseNEBWorkChain did not finish correctly')
+        spec.exit_code(
+            200,
+            'ERROR_MAIN_WC',
+            message='The end-point relaxation SiestaBaseWorkChain failed')
+        spec.exit_code(250,
+                       'ERROR_CONFIG',
+                       message='Cannot generate initial path correctly')
+        spec.exit_code(
+            300,
+            'ERROR_NEB_WK',
+            message='SiestaBaseNEBWorkChain did not finish correctly')
 
     def prepare_structures(self):
         """
@@ -57,7 +80,7 @@ class ExchangeBarrierWorkChain(WorkChain):
         self.ctx.s_initial = s_initial
         self.ctx.s_final = s_final
 
-        self.report(f'Created initial and final structures')
+        self.report('Created initial and final structures')
 
     def relax_initial(self):
         """
@@ -68,7 +91,9 @@ class ExchangeBarrierWorkChain(WorkChain):
         inputs['structure'] = self.ctx.s_initial
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to relax the initial structure.')
+        self.report(
+            f'Launched SiestaBaseWorkChain<{running.pk}> to relax the initial structure.'
+        )
 
         return ToContext(initial_relaxation_wk=running)
 
@@ -81,7 +106,9 @@ class ExchangeBarrierWorkChain(WorkChain):
         inputs['structure'] = self.ctx.s_final
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to relax the final structure.')
+        self.report(
+            f'Launched SiestaBaseWorkChain<{running.pk}> to relax the final structure.'
+        )
 
         return ToContext(final_relaxation_wk=running)
 
@@ -119,10 +146,12 @@ class ExchangeBarrierWorkChain(WorkChain):
         i1 = self.inputs.first_index.value
         i2 = self.inputs.second_index.value
 
-        i1_mid_path_position = compute_mid_path_position(s_initial, i1, i2, migration_direction)
+        i1_mid_path_position = compute_mid_path_position(
+            s_initial, i1, i2, migration_direction)
 
         #
-        s_intermediate = find_intermediate_structure(s_initial, i1, i1_mid_path_position, i2)
+        s_intermediate = find_intermediate_structure(s_initial, i1,
+                                                     i1_mid_path_position, i2)
 
         #
         # The starting_path is now built from two sections
@@ -130,8 +159,10 @@ class ExchangeBarrierWorkChain(WorkChain):
         # so that n_images // 2 is the number of internal images
         # of each section
 
-        first_list = interpolate_two_structures_ase(s_initial, s_intermediate, n_images // 2)
-        second_list = interpolate_two_structures_ase(s_intermediate, s_final, n_images // 2)
+        first_list = interpolate_two_structures_ase(s_initial, s_intermediate,
+                                                    n_images // 2)
+        second_list = interpolate_two_structures_ase(s_intermediate, s_final,
+                                                     n_images // 2)
 
         #
         # Remove duplicate central point
@@ -158,7 +189,7 @@ class ExchangeBarrierWorkChain(WorkChain):
 
         self.ctx.path = path_object
 
-        self.report(f'Generated starting path for NEB.')
+        self.report('Generated starting path for NEB.')
 
     def run_NEB_workchain(self):
 
@@ -170,7 +201,9 @@ class ExchangeBarrierWorkChain(WorkChain):
 
         running = self.submit(SiestaBaseNEBWorkChain, **inputs)
 
-        self.report(f'Launched SiestaBaseNEBWorkChain<{running.pk}> to find MEP for atom exchange.')
+        self.report(
+            f'Launched SiestaBaseNEBWorkChain<{running.pk}> to find MEP for atom exchange.'
+        )
 
         return ToContext(neb_wk=running)
 
@@ -178,14 +211,13 @@ class ExchangeBarrierWorkChain(WorkChain):
         """
         All checks are done in the NEB workchain
         """
-
         if not self.ctx.neb_wk.is_finished_ok:
             return self.exit_codes.ERROR_NEB_WK
 
         outps = self.ctx.neb_wk.outputs
         self.out('neb_output_package', outps['neb_output_package'])
 
-        self.report(f'ExchangeBarrier workchain done.')
+        self.report('ExchangeBarrier workchain done.')
 
 
 #    @classmethod

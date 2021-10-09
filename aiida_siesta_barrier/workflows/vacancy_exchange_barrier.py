@@ -2,12 +2,11 @@ from aiida import orm
 from aiida.engine import WorkChain, ToContext
 from aiida_siesta.workflows.neb_base import SiestaBaseNEBWorkChain
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-
 from aiida.orm import Dict
 from aiida.orm.nodes.data.structure import Site
-from aiida_siesta.utils.structures import find_mid_path_position
-from aiida_siesta.utils.structures import find_intermediate_structure
-from aiida_siesta.utils.interpol import interpolate_two_structures_ase
+from aiida_siesta_barrier.utils.structures import find_mid_path_position
+from aiida_siesta_barrier.utils.structures import find_intermediate_structure
+from aiida_siesta_barrier.utils.interpol import interpolate_two_structures_ase
 
 
 class VacancyExchangeBarrierWorkChain(WorkChain):

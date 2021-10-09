@@ -1,11 +1,9 @@
-#
-# Module
-#
+import numpy as np
+from ase.neb import NEB
 from aiida_siesta.utils.structures import aiida_struct_to_ase
 from aiida_siesta.utils.structures import ase_struct_to_aiida
 
 
-#
 def interpolate_two_structures(s1, s2, n_images):
     """
     Interpolate linearly the coordinates of two structures.
@@ -16,7 +14,6 @@ def interpolate_two_structures(s1, s2, n_images):
     :return: a list of structures
     """
 
-    import numpy as np
     p1 = np.array([site.position for site in s1.sites])
     p2 = np.array([site.position for site in s2.sites])
 
@@ -49,8 +46,6 @@ def interpolate_two_structures_ase(s1, s2, n_images, interp_method="idpp"):
             over which to interpolate
     :param: interp_method: A string with the interpolation method
     """
-
-    from ase.neb import NEB
 
     ase1 = aiida_struct_to_ase(s1)
     ase2 = aiida_struct_to_ase(s2)
