@@ -14,8 +14,18 @@ from aiida_siesta_barrier.workflows.vacancy_exchange_barrier import VacancyExcha
 
 try:
     codename = sys.argv[1]
+    load_code(codename)
+except (IndexError, NotExistent):
+    print(("The first parameter must be the code to use. Hint: `verdi code list`."),file=sys.stderr)
+    sys.exit(1)
+
+try:
+    lua_elements_path = sys.argv[2]
 except IndexError:
-    codename = 'SiestaHere@localhost'
+    print(("The second parameter must be the path to the lua scripts in the flos library."),file=sys.stderr)
+    print(("Look at the docs for more info. Library can be found at https://github.com/siesta-project/flos"),file=sys.stderr)
+    sys.exit(1)
+
 
 code = load_code(codename)
 

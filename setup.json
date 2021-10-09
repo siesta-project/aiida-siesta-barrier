@@ -37,7 +37,8 @@
     "entry_points": {
         "aiida.workflows": [
 	    "siesta.barrier.exchange = aiida_siesta_barrier.workflows.exchange_barrier:ExchangeBarrierWorkChain",
-	    "siesta.barrier.vacancy_exchange = aiida_siesta_barrier.workflows.vacancy_exchange_barrier:VacancyExchangeBarrierWorkChain"
+	    "siesta.barrier.vacancy_exchange = aiida_siesta_barrier.workflows.vacancy_exchange_barrier:VacancyExchangeBarrierWorkChain",
+	    "siesta.barrier.interstitial = aiida_siesta_barrier.workflows.interstitial_barrier:InterstitialBarrierWorkChain"
 	]
     }
 }

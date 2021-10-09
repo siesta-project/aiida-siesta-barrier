@@ -3,7 +3,7 @@ from aiida.engine import WorkChain, ToContext, calcfunction
 from aiida_siesta.workflows.neb_base import SiestaBaseNEBWorkChain
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.utils.structures import clone_aiida_structure
-from aiida_siesta.utils.interpol import interpolate_two_structures_ase
+from aiida_siesta_barrier.utils.interpol import interpolate_two_structures_ase
 
 
 @calcfunction
@@ -32,43 +32,58 @@ class InterstitialBarrierWorkChain(WorkChain):
     diffusion starting from the host structure and
     initial and final interstitial positions
     """
-
     @classmethod
     def define(cls, spec):
         super().define(spec)
 
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('structure',), namespace="initial")
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('structure',), namespace="final")
+        spec.expose_inputs(SiestaBaseWorkChain,
+                           exclude=('structure', ),
+                           namespace="initial")
+        spec.expose_inputs(SiestaBaseWorkChain,
+                           exclude=('structure', ),
+                           namespace="final")
 
-        spec.expose_inputs(SiestaBaseNEBWorkChain, exclude=('starting_path',), namespace="neb")
+        spec.expose_inputs(SiestaBaseNEBWorkChain,
+                           exclude=('starting_path', ),
+                           namespace="neb")
 
-        spec.input('host_structure', valid_type=orm.StructureData, help='Host structure')
-        spec.input('interstitial_species', valid_type=orm.Dict, help='Species in interstitials (symbol and name)')
+        spec.input('host_structure',
+                   valid_type=orm.StructureData,
+                   help='Host structure')
+        spec.input('interstitial_species',
+                   valid_type=orm.Dict,
+                   help='Species in interstitials (symbol and name)')
         #
         # These should be lists of floats. Pending validations
         #
         spec.input(
             'initial_position',
             valid_type=orm.List,  # validator...
-            help='Initial position of interstitial in host structure'
-        )
+            help='Initial position of interstitial in host structure')
         spec.input(
             'final_position',
             valid_type=orm.List,  # validator...
-            help='Final position of interstitial in host structure'
-        )
+            help='Final position of interstitial in host structure')
 
-        spec.input('n_images', valid_type=orm.Int, help='Number of (internal) images  in Path')
+        spec.input('n_images',
+                   valid_type=orm.Int,
+                   help='Number of (internal) images  in Path')
 
         spec.expose_outputs(SiestaBaseNEBWorkChain)
 
-        spec.outline(
-            cls.prepare_structures, cls.relax_initial, cls.relax_final, cls.prepare_initial_path, cls.run_NEB_workchain,
-            cls.check_results
-        )
-        spec.exit_code(200, 'ERROR_MAIN_WC', message='The end-point relaxation SiestaBaseWorkChain failed')
-        spec.exit_code(250, 'ERROR_CONFIG', message='Cannot figure out interstitial position(s)')
-        spec.exit_code(300, 'ERROR_NEB_WK', message='NEBWorkChain did not finish correctly')
+        spec.outline(cls.prepare_structures, cls.relax_initial,
+                     cls.relax_final, cls.prepare_initial_path,
+                     cls.run_NEB_workchain, cls.check_results)
+        spec.exit_code(
+            200,
+            'ERROR_MAIN_WC',
+            message='The end-point relaxation SiestaBaseWorkChain failed')
+        spec.exit_code(250,
+                       'ERROR_CONFIG',
+                       message='Cannot figure out interstitial position(s)')
+        spec.exit_code(300,
+                       'ERROR_NEB_WK',
+                       message='NEBWorkChain did not finish correctly')
 
     def prepare_structures(self):
         """
@@ -92,9 +107,13 @@ class InterstitialBarrierWorkChain(WorkChain):
         s_final = clone_aiida_structure(host)
 
         try:
-            s_initial.append_atom(symbols=int_atom_symbol, position=initial_position, name=int_atom_name)
+            s_initial.append_atom(symbols=int_atom_symbol,
+                                  position=initial_position,
+                                  name=int_atom_name)
 
-            s_final.append_atom(symbols=int_atom_symbol, position=final_position, name=int_atom_name)
+            s_final.append_atom(symbols=int_atom_symbol,
+                                position=final_position,
+                                name=int_atom_name)
         except:
             self.report("Problem adding atom to end-points")
             return self.exit_codes.ERROR_CONFIG
@@ -103,7 +122,7 @@ class InterstitialBarrierWorkChain(WorkChain):
         self.ctx.s_final = s_final
         self.ctx.atom_symbol = int_atom_symbol
 
-        self.report(f'Created initial and final structures')
+        self.report('Created initial and final structures')
 
     def relax_initial(self):
         """
@@ -114,7 +133,9 @@ class InterstitialBarrierWorkChain(WorkChain):
         inputs['structure'] = self.ctx.s_initial
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to relax the initial structure.')
+        self.report(
+            f'Launched SiestaBaseWorkChain<{running.pk}> to relax the initial structure.'
+        )
 
         return ToContext(initial_relaxation_wk=running)
 
@@ -127,7 +148,9 @@ class InterstitialBarrierWorkChain(WorkChain):
         inputs['structure'] = self.ctx.s_final
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to relax the final structure.')
+        self.report(
+            f'Launched SiestaBaseWorkChain<{running.pk}> to relax the final structure.'
+        )
 
         return ToContext(final_relaxation_wk=running)
 
@@ -166,9 +189,10 @@ class InterstitialBarrierWorkChain(WorkChain):
         # Here we simply interpolate with the ASE method
         # (use a calcfunction to wrap)
 
-        self.ctx.path = get_path_from_ends(s_initial, s_final, orm.Int(n_images))
+        self.ctx.path = get_path_from_ends(s_initial, s_final,
+                                           orm.Int(n_images))
 
-        self.report(f'Generated starting path for NEB.')
+        self.report('Generated starting path for NEB.')
 
     def run_NEB_workchain(self):
 
@@ -197,7 +221,7 @@ class InterstitialBarrierWorkChain(WorkChain):
         outps = self.ctx.neb_wk.outputs
         self.out('neb_output_package', outps['neb_output_package'])
 
-        self.report(f'InterstitialBarrier workchain done.')
+        self.report('InterstitialBarrier workchain done.')
 
 
 #    @classmethod

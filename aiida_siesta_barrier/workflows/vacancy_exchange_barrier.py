@@ -14,43 +14,64 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
     Workchain to compute the barrier for exchange of a vacancy and an atom
     in a structure.
     """
-
     @classmethod
     def define(cls, spec):
         super().define(spec)
 
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('structure',), namespace="initial")
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('structure',), namespace="final")
+        spec.expose_inputs(SiestaBaseWorkChain,
+                           exclude=('structure', ),
+                           namespace="initial")
+        spec.expose_inputs(SiestaBaseWorkChain,
+                           exclude=('structure', ),
+                           namespace="final")
 
-        spec.expose_inputs(SiestaBaseNEBWorkChain, exclude=('starting_path',), namespace="neb")
+        spec.expose_inputs(SiestaBaseNEBWorkChain,
+                           exclude=('starting_path', ),
+                           namespace="neb")
 
-        spec.input('host_structure', valid_type=orm.StructureData, help='Host structure')
+        spec.input('host_structure',
+                   valid_type=orm.StructureData,
+                   help='Host structure')
 
-        spec.input('vacancy_index', valid_type=orm.Int, help='Index of vacancy in structure')
-        spec.input('atom_index', valid_type=orm.Int, help='Index of atom (to be exchanged) in structure')
+        spec.input('vacancy_index',
+                   valid_type=orm.Int,
+                   help='Index of vacancy in structure')
+        spec.input('atom_index',
+                   valid_type=orm.Int,
+                   help='Index of atom (to be exchanged) in structure')
 
         # This is required in this version.
-        spec.input('ghost_species', valid_type=orm.Dict, help='Ghost species to provide extra basis orbitals')
+        spec.input('ghost_species',
+                   valid_type=orm.Dict,
+                   help='Ghost species to provide extra basis orbitals')
+
+        spec.input('migration_direction',
+                   valid_type=orm.List,
+                   required=False,
+                   help='Migration direction (in lattice coordinates)')
 
         spec.input(
-            'migration_direction',
-            valid_type=orm.List,
-            required=False,
-            help='Migration direction (in lattice coordinates)'
-        )
-
-        spec.input('n_images', valid_type=orm.Int, help='Number of (internal) images in Path (odd!!)')  # validate
+            'n_images',
+            valid_type=orm.Int,
+            help='Number of (internal) images in Path (odd!!)')  # validate
 
         spec.expose_outputs(SiestaBaseNEBWorkChain)
 
-        spec.outline(
-            cls.prepare_structures, cls.relax_initial, cls.relax_final, cls.prepare_initial_path, cls.run_NEB_workchain,
-            cls.check_results
-        )
+        spec.outline(cls.prepare_structures, cls.relax_initial,
+                     cls.relax_final, cls.prepare_initial_path,
+                     cls.run_NEB_workchain, cls.check_results)
 
-        spec.exit_code(200, 'ERROR_MAIN_WC', message='The end-point relaxation SiestaBaseWorkChain failed')
-        spec.exit_code(250, 'ERROR_CONFIG', message='Cannot generate initial path correctly')
-        spec.exit_code(300, 'ERROR_NEB_WK', message='SiestaBaseNEBWorkChain did not finish correctly')
+        spec.exit_code(
+            200,
+            'ERROR_MAIN_WC',
+            message='The end-point relaxation SiestaBaseWorkChain failed')
+        spec.exit_code(250,
+                       'ERROR_CONFIG',
+                       message='Cannot generate initial path correctly')
+        spec.exit_code(
+            300,
+            'ERROR_NEB_WK',
+            message='SiestaBaseNEBWorkChain did not finish correctly')
 
     def prepare_structures(self):
         """
@@ -80,7 +101,8 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         new_ia = new_sites.index(atom_site)
 
         # Insert site with final position of atom in place of the original.
-        new_atom_site = Site(kind_name=atom_site.kind_name, position=vacancy_position)
+        new_atom_site = Site(kind_name=atom_site.kind_name,
+                             position=vacancy_position)
         new_sites[new_ia] = new_atom_site
 
         s_final = s_initial.clone()
@@ -94,7 +116,7 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         self.ctx.original_atom_site = atom_site
         self.ctx.original_vacancy_site = vacancy_site
 
-        self.report(f'Created initial and final structures')
+        self.report('Created initial and final structures')
 
     def relax_initial(self):
         """
@@ -144,7 +166,9 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         # (Must be done in driver for now)
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to relax the initial structure.')
+        self.report(
+            f'Launched SiestaBaseWorkChain<{running.pk}> to relax the initial structure.'
+        )
 
         return ToContext(initial_relaxation_wk=running)
 
@@ -189,7 +213,9 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         inputs['basis'] = Dict(dict=basis_dict)
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to relax the final structure.')
+        self.report(
+            f'Launched SiestaBaseWorkChain<{running.pk}> to relax the final structure.'
+        )
 
         return ToContext(final_relaxation_wk=running)
 
@@ -216,8 +242,10 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         # and in the final structure. These will be the positions of
         # the ghosts in the NEB run.
 
-        self.ctx.relaxed_initial_atom_position = s_initial.sites[self.ctx.atom_site_index].position
-        self.ctx.relaxed_final_atom_position = s_final.sites[self.ctx.atom_site_index].position
+        self.ctx.relaxed_initial_atom_position = s_initial.sites[
+            self.ctx.atom_site_index].position
+        self.ctx.relaxed_final_atom_position = s_final.sites[
+            self.ctx.atom_site_index].position
 
         n_images = self.inputs.n_images.value
 
@@ -233,18 +261,22 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
             pos2 = self.ctx.relaxed_final_atom_position
 
             # ... this would be unrelaxed:  pos2 = self.ctx.vacancy_position
-            atom_mid_path_position = find_mid_path_position(s_initial, pos1, pos2, migration_direction)
+            atom_mid_path_position = find_mid_path_position(
+                s_initial, pos1, pos2, migration_direction)
             self.report(f"Using mid-path point {atom_mid_path_position}")
 
-            s_intermediate = find_intermediate_structure(s_initial, self.ctx.atom_site_index, atom_mid_path_position)
+            s_intermediate = find_intermediate_structure(
+                s_initial, self.ctx.atom_site_index, atom_mid_path_position)
 
             # The starting_path is now built from two sections
             # We assume that the number of internal images is odd,
             # so that n_images // 2 is the number of internal images
             # of each section
 
-            first_list = interpolate_two_structures_ase(s_initial, s_intermediate, n_images // 2)
-            second_list = interpolate_two_structures_ase(s_intermediate, s_final, n_images // 2)
+            first_list = interpolate_two_structures_ase(
+                s_initial, s_intermediate, n_images // 2)
+            second_list = interpolate_two_structures_ase(
+                s_intermediate, s_final, n_images // 2)
 
             #
             # Remove duplicate central point
@@ -257,7 +289,8 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
 
         else:
             # Just normal (idpp) interpolation
-            images_list = interpolate_two_structures_ase(s_initial, s_final, n_images)
+            images_list = interpolate_two_structures_ase(
+                s_initial, s_final, n_images)
 
         #
         # We might need a more general refiner, starting
@@ -275,7 +308,7 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
 
         self.ctx.path = path_object
 
-        self.report(f'Generated starting path for NEB.')
+        self.report('Generated starting path for NEB.')
 
     def run_NEB_workchain(self):
 
@@ -313,7 +346,9 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
 
         running = self.submit(SiestaBaseNEBWorkChain, **inputs)
 
-        self.report(f'Launched SiestaBaseNEBWorkChain<{running.pk}> to find MEP for vacancy exchange.')
+        self.report(
+            f'Launched SiestaBaseNEBWorkChain<{running.pk}> to find MEP for vacancy exchange.'
+        )
 
         return ToContext(neb_wk=running)
 
@@ -328,7 +363,7 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         outps = self.ctx.neb_wk.outputs
         self.out('neb_output_package', outps['neb_output_package'])
 
-        self.report(f'VacancyExchangeBarrier workchain done.')
+        self.report('VacancyExchangeBarrier workchain done.')
 
 
 #    @classmethod

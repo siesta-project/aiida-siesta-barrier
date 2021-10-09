@@ -9,14 +9,23 @@ from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)
 from aiida.orm import SinglefileData
-
-from aiida_siesta.data.psf import PsfData
-from aiida_siesta.workflows.interstitial_barrier import InterstitialBarrierWorkChain
+from aiida_pseudo.data.pseudo.psf import PsfData
+from aiida_siesta_barrier.workflows.interstitial_barrier import InterstitialBarrierWorkChain
 
 try:
     codename = sys.argv[1]
+    load_code(codename)
+except (IndexError, NotExistent):
+    print(("The first parameter must be the code to use. Hint: `verdi code list`."),file=sys.stderr)
+    sys.exit(1)
+
+try:
+    lua_elements_path = sys.argv[2]
 except IndexError:
-    codename = 'SiestaHere@localhost'
+    print(("The second parameter must be the path to the lua scripts in the flos library."),file=sys.stderr)
+    print(("Look at the docs for more info. Library can be found at https://github.com/siesta-project/flos"),file=sys.stderr)
+    sys.exit(1)
+
 
 code = load_code(codename)
 
@@ -46,8 +55,7 @@ interstitial_species= Dict(dict={ 'symbol': 'H', 'name': 'H_int' })
 
 
 # Lua script
-absname = op.abspath(
-        op.join(op.dirname(__file__), "../plugins/siesta/lua_scripts/neb.lua"))
+absname = op.abspath(op.join(op.dirname(__file__), "fixtures/lua_scripts/neb.lua"))
 lua_script = SinglefileData(absname)
 
 
@@ -110,15 +118,15 @@ kpoints_neb.set_kpoints_mesh([1,1,1])
 pseudos_dict = {}
 raw_pseudos = [("Si.psf", ['Si']), ("H.psf", ['H_int'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__), "../plugins/siesta/data/sample-psf-family", fname))
-    pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    if created:
+    absname = op.realpath(op.join(op.dirname(__file__), "fixtures/sample_psf", fname))
+    pseudo = PsfData.get_or_create(absname)
+    if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:
         print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
     for j in kinds:
         pseudos_dict[j]=pseudo
+
 
 #Resources
 options = {
@@ -139,7 +147,8 @@ options_neb = {
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 2,
-    }
+    },
+    "environment_variables":{"LUA_PATH":lua_elements_path},
 }
 
 endpoint_inputs= {
