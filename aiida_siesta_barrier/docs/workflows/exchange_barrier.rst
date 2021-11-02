@@ -1,4 +1,4 @@
-Exchange barrier
+Exchange Barrier
 ----------------
 
 Bla bla

@@ -1,4 +1,4 @@
-Vacancy exchange barrier
-------------------------
+Vacancy Exchange & diffusion barrier
+------------------------------------
 
 Bla bla

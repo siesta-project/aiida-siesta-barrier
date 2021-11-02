@@ -1,7 +1,9 @@
 Welcome to the AiiDA-Siesta-barrier documentation!
-++++++++++++++++++++++++++++++++++++++++++++
+++++++++++++++++++++++++++++++++++++++++++++++++++
 
-..
+.. image:: miscellaneous/logos/AiiDA-Siesta-barriers.png
+   :scale: 20 %
+   :align: center
 
 Collects aiida workflows to calculate energy barriers. Based on the Nudged Elastic Band method. Requires `aiida-siesta` package.
 
@@ -36,6 +38,17 @@ funded by the `Swiss National Science Foundation <http://www.snf.ch/en>`_
 
 Contents:
 ---------
+
+Some Background
+===============
+
+.. toctree::
+   :maxdepth: 4
+
+   somebackground 
+
+
+
 
 Installation
 ============

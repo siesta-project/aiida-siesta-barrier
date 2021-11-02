@@ -1,4 +1,4 @@
-Interstitial barrier
----------------------
+Vacancy & Interstitial Diffusion Barrier
+----------------------------------------
 
 Bla bla
