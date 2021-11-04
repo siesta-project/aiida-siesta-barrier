@@ -6,7 +6,7 @@ Vacancy & Interstitial Diffusion Barrier
    :align: center
 
 
-The Interstitial diffusion workflows required following inputs::
+The Interstitial diffusion workflow requires the following inputs::
 
         inputs = { 'host_structure': host,
         'interstitial_species': Dict(dict={ 'symbol': 'H', 'name': 'H' }),
