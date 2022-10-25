@@ -40,7 +40,7 @@ def generate_initial_path_for_kick(s_initial, s_final, nimages,interp_method,mig
     first_list = interpolate_two_structures_ase(s_initial, s_intermediate,
                                             n_images // 2,interp_method )
     second_list = interpolate_two_structures_ase(s_intermediate, s_final,
-                                             n_images // 2 , interp_method)
+                                             n_images // 2 , interp_method )
     images_list = first_list[:-1] + second_list 
         
     path_object = orm.TrajectoryData(images_list)
@@ -238,7 +238,7 @@ class KickBarrierWorkChain(WorkChain):
 
 
 
-    def prepare_structures(self):
+    def prepare_structures_Bugy(self):
         """
         Make copies of host structure and add interstitials
         """
@@ -281,6 +281,78 @@ class KickBarrierWorkChain(WorkChain):
                     name=final_atom_name)
 
         self.ctx.s_initial = host #s_initial
+        self.ctx.s_final = s_final
+
+        self.report('Created initial and final structures')
+
+    def prepare_structures(self):
+        """
+        Make copies of host structure and add interstitials
+        """
+        host = self.inputs.host_structure
+        initial_position_index = self.inputs.initial_position_index #.value
+        final_position_index = self.inputs.final_position_index #.value
+        inter_pos = self.inputs.interstitial_position 
+        host_sites=host.sites
+        initial_atom_name =  host_sites[initial_position_index.value].kind_name
+        initial_atom_symbol = host_sites[initial_position_index.value].kind_name
+        final_atom_name =  host_sites[final_position_index.value].kind_name
+        final_atom_symbol = host_sites[final_position_index.value].kind_name
+        initial_atom_position = host_sites[initial_position_index.value].position
+        final_atom_position = host_sites[final_position_index.value].position
+        s_final = clone_aiida_structure(host)
+        s_final.clear_sites()
+        s_initial = clone_aiida_structure(host)
+        s_initial.clear_sites()
+        new_sites = host_sites
+        
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # repeating block will fix it later!
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if initial_position_index.value > final_position_index.value:
+            self.report('initial index > final index')
+            # Remove initial site first from list
+            initial_site = new_sites.pop(initial_position_index.value)      
+            # Remove final site second from list
+            final_site = new_sites.pop(final_position_index.value)  
+            [s_final.append_site(s) for s in new_sites]
+            s_final.append_atom(symbols=final_atom_symbol,
+                                position= inter_pos.get_list(),
+                                name=final_atom_name)
+            s_final.append_atom(symbols=initial_atom_symbol,
+                                position= final_atom_position,
+                                name=initial_atom_name)
+            # Puting back for initial
+            [s_initial.append_site(s) for s in new_sites]
+            s_initial.append_atom(symbols=final_atom_symbol,
+                                  position=final_atom_position,
+                                  name= final_atom_symbol)
+            s_initial.append_atom(symbols=initial_atom_symbol,
+                                  position=initial_atom_position,
+                                  name=initial_atom_name)    
+        else:
+            self.report('final index > initial index')
+            # Remove final index first
+            final_site = new_sites.pop(final_position_index.value)
+            # Remove initial index second
+            initial_site = new_sites.pop(initial_position_index.value)
+            [s_final.append_site(s) for s in new_sites]
+            s_final.append_atom(symbols=final_atom_symbol,
+                                position=inter_pos.get_list(),
+                                name=final_atom_name)
+            s_final.append_atom(symbols=initial_atom_symbol,
+                                position=final_atom_position,
+                                name=initial_atom_name)
+            #
+            [s_initial.append_site(s) for s in new_sites]
+            s_initial.append_atom(symbols=final_atom_symbol,
+                                  position=final_atom_position,
+                                  name= final_atom_symbol)
+            s_initial.append_atom(symbols=initial_atom_symbol,
+                                  position=initial_atom_position,
+                                  name=initial_atom_name)
+
+        self.ctx.s_initial = s_initial
         self.ctx.s_final = s_final
 
         self.report('Created initial and final structures')
